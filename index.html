@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phone OSINT Tool Pro</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI, Tahoma, sans-serif}
+body{
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+min-height:100vh;padding:20px;color:#fff;display:flex;align-items:center
+}
+.app-container{
+max-width:500px;margin:auto;
+background:rgba(255,255,255,.1);
+backdrop-filter:blur(15px);
+border-radius:25px;padding:30px;
+box-shadow:0 20px 40px rgba(0,0,0,.3);
+border: 1px solid rgba(255,255,255,0.1)
+}
+.header{text-align:center;margin-bottom:25px}
+.header h1{
+font-size:30px;
+background:linear-gradient(45deg,#00dbde,#fc00ff);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent
+}
+.phone-input{
+width:100%;padding:18px;border:none;
+border-radius:15px;font-size:18px;
+background:rgba(255,255,255,.2);
+color:white;text-align:center;margin-bottom:15px;
+outline: none; border: 2px solid transparent; transition: 0.3s
+}
+.phone-input:focus{border-color: #00dbde}
+
+.buttons-grid{display:grid;grid-template-columns: 1fr 1fr; gap:12px}
+.app-button{
+padding:15px;border:none;border-radius:12px;
+font-size:15px;font-weight:bold;
+cursor:pointer;color:white;transition: 0.3s;
+display: flex; align-items: center; justify-content: center; gap: 8px
+}
+.app-button:hover{transform: translateY(-3px); filter: brightness(1.1)}
+.whatsapp{background:#25D366}
+.telegram{background:#0088cc}
+.facebook{background:#1877F2}
+.google{background:#4285F4}
+.truecaller{background:#7B61FF}
+.copy{background:#10B981}
+.clear{background:#EF4444; grid-column: span 2}
+
+.result-box{
+background:rgba(255,255,255,0.05);
+padding:15px;border-radius:15px;
+margin-top:20px;display:none; border: 1px dashed rgba(255,255,255,0.2)
+}
+.info-row{
+display:flex;justify-content:space-between;
+margin-bottom:8px;padding-bottom: 5px; border-bottom:1px solid rgba(255,255,255,.05)
+}
+.footer{
+margin-top:20px;text-align:center;
+font-size:12px;opacity:.6; line-height: 1.6
+}
+</style>
+</head>
+
+<body>
+<div class="app-container">
+
+<div class="header">
+<h1>📱 Phone OSINT Tool</h1>
+<p>أداة البحث والتحليل السريع</p>
+</div>
+
+<input type="tel" id="phoneInput" class="phone-input"
+placeholder="أدخل الرقم (مثال: 010...)" inputmode="numeric">
+
+<div class="buttons-grid">
+<button class="app-button whatsapp" onclick="openApp('whatsapp')">واتساب</button>
+<button class="app-button telegram" onclick="openApp('telegram')">تيليجرام</button>
+<button class="app-button facebook" onclick="openApp('facebook')">فيسبوك</button>
+<button class="app-button google" onclick="openApp('google')">بحث Google</button>
+<button class="app-button truecaller" onclick="openApp('truecaller')">TrueCaller</button>
+<button class="app-button copy" onclick="copyPhone()">نسخ الرقم</button>
+<button class="app-button clear" onclick="clearAll()">🗑️ مسح البيانات</button>
+</div>
+
+<div id="resultBox" class="result-box">
+<div class="info-row"><span>الصيغة الدولية:</span><span id="phoneDisplay"></span></div>
+<div class="info-row"><span>الدولة:</span><span>مصر 🇪🇬</span></div>
+<div class="info-row"><span>الشبكة:</span><span id="carrierDisplay"></span></div>
+</div>
+
+<div class="footer">
+<p>⚠️ الاستخدام القانوني مسؤولية المستخدم</p>
+<p>تطوير: أحمد حسني | ميزة النسخ التلقائي</p>
+</div>
+
+</div>
+
+<script>
+// دعم زر Enter
+document.getElementById('phoneInput').addEventListener('keypress', function (e) {
+    if (e.key === 'Enter') openApp('whatsapp');
+});
+
+function normalizePhone(input){
+    let p = input.replace(/\D/g,'');
+    if(p.startsWith('01')) p = '20' + p;
+    if(!p.startsWith('20')) return null;
+    if(p.length !== 12) return null;
+    return p;
+}
+
+function detectCarrier(p){
+    let code = p.substring(2,4);
+    const carriers = {'10':'Vodafone', '11':'Etisalat', '12':'Orange', '15':'WE'};
+    return carriers[code] || 'غير معروف';
+}
+
+function analyze(){
+    let rawInput = document.getElementById('phoneInput').value;
+    let phone = normalizePhone(rawInput);
+    if(!phone){alert('❌ يرجى إدخال رقم مصري صحيح'); return null}
+    
+    document.getElementById('phoneDisplay').textContent = '+' + phone;
+    document.getElementById('carrierDisplay').textContent = detectCarrier(phone);
+    document.getElementById('resultBox').style.display = 'block';
+    return {intl: phone, raw: rawInput};
+}
+
+async function openApp(type){
+    let data = analyze(); 
+    if(!data) return;
+
+    let links = {
+        whatsapp: `https://wa.me/${data.intl}`,
+        telegram: `https://t.me/share/url?text=${data.intl}`,
+        facebook: `https://www.facebook.com/search/top?q=${data.intl}`,
+        truecaller: `https://t.me/TrueCalleRobot`,
+        google: `https://www.google.com/search?q="${data.raw}"`
+    };
+
+    // الميزة المطلوبة: نسخ الرقم تلقائياً عند الضغط على TrueCaller
+    if(type === 'truecaller'){
+        try {
+            await navigator.clipboard.writeText(data.intl);
+            console.log('تم نسخ الرقم تلقائياً لسهولة اللصق في البوت');
+        } catch (err) {
+            console.error('فشل النسخ التلقائي');
+        }
+    }
+    
+    window.open(links[type], '_blank');
+}
+
+function copyPhone(){
+    let data = analyze(); if(!data) return;
+    navigator.clipboard.writeText(data.intl);
+    alert('✅ تم نسخ الرقم بالصيغة الدولية');
+}
+
+function clearAll(){
+    document.getElementById('phoneInput').value = '';
+    document.getElementById('resultBox').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
